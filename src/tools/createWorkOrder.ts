@@ -2,7 +2,7 @@ import { z } from "zod";
 import { ApiClient } from "../http/apiClient";
 import { WorkOrderPostBody, WorkOrderShowDTO } from "../atlasTypes";
 import { errorResult, jsonResult } from "../util/mcpResult";
-import { formatMiniRef, formatUserRef, formatUserRefs } from "../util/format";
+import { displayId, formatMiniRef, formatUserRef, formatUserRefs } from "../util/format";
 import { ASSET_STATUS_VALUES, PRIORITY_VALUES, STATUS_VALUES } from "./enums";
 
 const isoDate = z.string().datetime({ offset: true });
@@ -71,19 +71,19 @@ export async function createWorkOrder(apiClient: ApiClient, args: CreateWorkOrde
     const created = await apiClient.post<WorkOrderShowDTO>("/work-orders", body);
 
     return jsonResult({
-      id: created.id,
+      id: displayId(created.customId, created.id),
+      workOrderId: created.id,
       title: created.title,
       description: created.description ?? null,
       status: created.status,
       priority: created.priority,
       dueDate: created.dueDate ?? null,
       estimatedDuration: created.estimatedDuration,
-      customId: created.customId ?? null,
       location: formatMiniRef(created.location),
       team: formatMiniRef(created.team),
       category: formatMiniRef(created.category),
       asset: formatMiniRef(created.asset),
-      primaryUser: formatUserRef(created.primaryUser),
+      primaryWorker: formatUserRef(created.primaryUser),
       assignedTo: formatUserRefs(created.assignedTo),
     });
   } catch (err) {

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { ApiClient } from "../http/apiClient";
 import { WorkOrderChangeStatusBody, WorkOrderShowDTO } from "../atlasTypes";
 import { errorResult, jsonResult } from "../util/mcpResult";
+import { displayId, formatUserRef } from "../util/format";
 import { STATUS_VALUES } from "./enums";
 
 export const changeWorkOrderStatusShape = {
@@ -32,9 +33,10 @@ export async function changeWorkOrderStatus(apiClient: ApiClient, args: ChangeWo
     );
 
     return jsonResult({
-      id: updated.id,
+      id: displayId(updated.customId, updated.id),
+      workOrderId: updated.id,
       status: updated.status,
-      completedBy: updated.completedBy ?? null,
+      completedBy: formatUserRef(updated.completedBy),
       completedOn: updated.completedOn ?? null,
       feedback: updated.feedback ?? null,
     });

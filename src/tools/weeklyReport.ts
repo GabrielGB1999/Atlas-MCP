@@ -3,7 +3,7 @@ import { ApiClient } from "../http/apiClient";
 import { PageResponse, SearchCriteria, WorkOrderShowDTO, toApiDateString } from "../atlasTypes";
 import { Logger } from "../util/logger";
 import { errorResult, formatDate, jsonResult, textResult } from "../util/mcpResult";
-import { formatUserName } from "../util/format";
+import { displayId, formatUserName } from "../util/format";
 import { PRIORITY_VALUES, STATUS_VALUES } from "./enums";
 
 export const weeklyReportShape = {
@@ -134,7 +134,7 @@ function buildReportData(agg: Aggregation, start: Date, end: Date, includeComple
       return aDue - bDue;
     })
     .slice(0, 3)
-    .map((wo) => ({ id: wo.id, title: wo.title, priority: wo.priority, dueDate: wo.dueDate ?? null }));
+    .map((wo) => ({ id: displayId(wo.customId, wo.id), title: wo.title, priority: wo.priority, dueDate: wo.dueDate ?? null }));
 
   const assigneeBreakdown = new Map<string, number>();
   for (const wo of agg.byStatus.IN_PROGRESS) {
@@ -186,7 +186,7 @@ function buildReportData(agg: Aggregation, start: Date, end: Date, includeComple
         ...(includeCompletedDetails
           ? {
               items: agg.byStatus.COMPLETE.map((wo) => ({
-                id: wo.id,
+                id: displayId(wo.customId, wo.id),
                 title: wo.title,
                 completedOn: wo.completedOn ?? null,
                 completedBy: formatUserName(wo.completedBy),
@@ -232,7 +232,7 @@ function toMarkdown(data: ReportData): string {
     }, NONE: ${open.byPriority.NONE ?? 0})`,
   );
   if (open.topUrgent.length > 0) {
-    lines.push(`  - Top Urgent: ${open.topUrgent.map((wo) => `#${wo.id} "${wo.title}" (${wo.priority})`).join(", ")}`);
+    lines.push(`  - Top Urgent: ${open.topUrgent.map((wo) => `${wo.id} "${wo.title}" (${wo.priority})`).join(", ")}`);
   }
   const inProgress = data.byStatus.IN_PROGRESS;
   lines.push(`- **IN_PROGRESS:** ${inProgress.count}`);

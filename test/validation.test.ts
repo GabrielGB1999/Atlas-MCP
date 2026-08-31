@@ -4,7 +4,7 @@ import { updateWorkOrderShape } from "../src/tools/updateWorkOrder";
 import { listWorkOrdersShape } from "../src/tools/listWorkOrders";
 import { getAssetShape } from "../src/tools/getAsset";
 import { listAssetsShape } from "../src/tools/listAssets";
-import { formatUserName, formatMiniRef } from "../src/util/format";
+import { formatUserName, formatMiniRef, displayId } from "../src/util/format";
 
 describe("tool input validation", () => {
   it("rejects create-work-order missing required fields", () => {
@@ -99,5 +99,15 @@ describe("human-readable name formatting", () => {
 
   it("uses the provided name when a mini entity has one", () => {
     expect(formatMiniRef({ id: 7, name: "Main Warehouse" })).toEqual({ id: 7, name: "Main Warehouse" });
+  });
+
+  it("prefers customId as the display id, matching the frontend's own Id column", () => {
+    expect(displayId("WO000042", 99)).toBe("WO000042");
+  });
+
+  it("falls back to a labeled numeric id when customId is missing", () => {
+    expect(displayId(null, 99)).toBe("#99");
+    expect(displayId(undefined, 99)).toBe("#99");
+    expect(displayId("", 99)).toBe("#99");
   });
 });

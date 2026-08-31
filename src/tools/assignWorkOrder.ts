@@ -27,11 +27,15 @@ export async function assignWorkOrder(apiClient: ApiClient, args: AssignWorkOrde
   }
 
   try {
-    const parsed = JSON.parse(result.content[0].text) as { current: { assignedTo: unknown; primaryUser: unknown } };
+    const parsed = JSON.parse(result.content[0].text) as {
+      id: string;
+      current: { assignedTo: unknown; primaryWorker: unknown };
+    };
     return jsonResult({
+      id: parsed.id,
       workOrderId: args.workOrderId,
       assignedTo: parsed.current.assignedTo,
-      primaryUser: parsed.current.primaryUser,
+      primaryWorker: parsed.current.primaryWorker,
     });
   } catch (err) {
     return errorResult(`Assigned work order but failed to parse confirmation: ${String(err)}`);

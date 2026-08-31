@@ -20,15 +20,34 @@ memory, and refreshes it automatically (both preemptively before expiry and reac
 | `get-asset` | `GET /assets/{id}` | Full detail on one asset, read-only |
 | `list-assets` | `POST /assets/search` | Filter + paginate assets, read-only |
 
-### Human-readable names, not raw IDs
+### Output matches what a human sees in the frontend, not the database schema
 
 Every tool renders people and entities as `{ id, name }` pairs instead of bare ids —
-`get-work-order`'s `relations.primaryUser` reads `{ "id": 7, "name": "John Smith" }`, not `"worker:
-ID 225"`. Two wrinkles worth knowing:
+`get-work-order`'s `relations.primaryWorker` reads `{ "id": 7, "name": "John Smith" }`, not
+`"worker: ID 225"`. Two conventions apply everywhere, and are also declared in the MCP server's
+`instructions` field (sent once at connection time) so Claude applies them without being told
+per-request:
+
+- **`id` is the display code, not the database primary key.** The frontend's own "Id" column is
+  always bound to `customId` (`WorkOrderService.getWorkOrderNumber` / `AssetService.getAssetNumber`
+  — format `WO` + 6 digits for work orders, e.g. `WO000042`; `A` + 6 digits for assets, e.g.
+  `A000012`), never the raw numeric id — confirmed in both the generation code and the
+  list/detail-view rendering. So every tool's `id` field is that display code
+  (`src/util/format.ts`'s `displayId()`), and the raw numeric id — still needed to chain further
+  tool calls — is kept alongside under an unambiguous name: `workOrderId` for work orders,
+  `assetId` for assets. Never read a bare number back to a user as "the ID".
+- **`primaryWorker` is the main/responsible worker, distinct from `assignedTo`.** The frontend
+  detail page (`WorkOrderDetails.tsx`) renders `primaryUser` under its own "Primary Worker"
+  heading, with its own "No primary worker" empty state — structurally separate from the
+  "Assigned To" list of other workers, never merged into it. So when asked "who is working on
+  this" or "who's assigned to it", answer with `primaryWorker` first; `assignedTo` is the
+  additional-workers list, not a set of equally-weighted assignees.
+
+Two more wrinkles worth knowing:
 
 - **Users have no combined "name" field on the API side** (`UserMiniDTO` only has
-  `firstName`/`lastName`) — `src/util/format.ts`'s `formatUserName()` joins them. A user with
-  neither field set (rare) falls back to `User #<id>`.
+  `firstName`/`lastName`) — `formatUserName()` joins them. A user with neither field set (rare)
+  falls back to `User #<id>`.
 - **`get-work-order` also fetches and resolves discrepancies** ("squawks") via
   `GET /work-order-discrepancies/work-order/{id}`, included as a `discrepancies` array. Each
   discrepancy's "raised by" is only exposed as a raw `createdBy` user id by that endpoint — this

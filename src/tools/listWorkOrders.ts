@@ -2,7 +2,7 @@ import { z } from "zod";
 import { ApiClient } from "../http/apiClient";
 import { PageResponse, SearchCriteria, WorkOrderShowDTO } from "../atlasTypes";
 import { errorResult, jsonResult } from "../util/mcpResult";
-import { formatMiniRef, formatUserRefs } from "../util/format";
+import { displayId, formatMiniRef, formatUserRef, formatUserRefs } from "../util/format";
 import { STATUS_VALUES, PRIORITY_VALUES } from "./enums";
 
 export const listWorkOrdersShape = {
@@ -79,11 +79,15 @@ export async function listWorkOrders(apiClient: ApiClient, args: ListWorkOrdersA
     const page = await apiClient.post<PageResponse<WorkOrderShowDTO>>("/work-orders/search", criteria);
 
     const items = page.content.map((wo) => ({
-      id: wo.id,
+      id: displayId(wo.customId, wo.id),
+      workOrderId: wo.id,
       title: wo.title,
       description: wo.description ?? null,
       status: wo.status,
       priority: wo.priority,
+      // primaryWorker is the main/responsible worker (frontend's "Primary Worker" field);
+      // assignedTo is the separate list of additional workers ("Assigned To" in the frontend).
+      primaryWorker: formatUserRef(wo.primaryUser),
       assignedTo: formatUserRefs(wo.assignedTo),
       location: formatMiniRef(wo.location),
       asset: formatMiniRef(wo.asset),

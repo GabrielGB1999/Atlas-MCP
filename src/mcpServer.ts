@@ -12,8 +12,25 @@ import { generateWeeklyWorkOrderReport, weeklyReportShape } from "./tools/weekly
 import { getAsset, getAssetShape } from "./tools/getAsset";
 import { listAssets, listAssetsShape } from "./tools/listAssets";
 
+const SERVER_INSTRUCTIONS = `
+This server exposes Atlas CMMS the way its human users see it in the web app, not the way the
+underlying database models it. Two conventions apply across every tool here:
+
+1. "id" is the work order/asset's display code (work orders: "WO000042"; assets: "A000012"),
+   matching what's printed in the frontend's own "Id" column — never a raw database number. When
+   you tell a human "work order WO000042" or "asset A000012", that's the "id" field. Some tools
+   also return a numeric
+   "workOrderId"/"assetId" alongside it — that's an internal handle for this MCP's own follow-up
+   calls (update-work-order, change-work-order-status, get-asset, ...); never surface it to a
+   human as "the ID".
+2. "primaryWorker" is the single main/responsible worker on a work order or asset (the frontend's
+   own "Primary Worker" field). "assignedTo" is the separate list of other/additional workers. If
+   a person asks "who is working on this" or "who's assigned to this", answer with primaryWorker
+   first — it is not just one more name in assignedTo.
+`.trim();
+
 export function createServer(apiClient: ApiClient, logger: Logger): McpServer {
-  const server = new McpServer({ name: "atlas-mcp", version: "0.1.0" });
+  const server = new McpServer({ name: "atlas-mcp", version: "0.1.0" }, { instructions: SERVER_INSTRUCTIONS });
 
   server.tool(
     "list-work-orders",
@@ -24,7 +41,10 @@ export function createServer(apiClient: ApiClient, logger: Logger): McpServer {
 
   server.tool(
     "get-work-order",
-    "Retrieve full details of a single work order by ID.",
+    "Retrieve full details of a single work order by its numeric workOrderId. Returns the " +
+      "human-facing display id (e.g. \"WO000042\"), the primaryWorker (main/responsible worker — " +
+      "answer with this when asked who is working on it) separately from the assignedTo list of " +
+      "other workers, and the work order's discrepancies.",
     getWorkOrderShape,
     async (args) => getWorkOrder(apiClient, args),
   );
@@ -53,7 +73,9 @@ export function createServer(apiClient: ApiClient, logger: Logger): McpServer {
 
   server.tool(
     "assign-work-order",
-    "Assign (or unassign) users on a work order, optionally setting the primary assignee.",
+    "Assign (or unassign) users on a work order, optionally setting primaryUserId — the " +
+      "main/responsible worker (the frontend's \"Primary Worker\"), distinct from the other " +
+      "workers in userIds.",
     assignWorkOrderShape,
     async (args) => assignWorkOrder(apiClient, args),
   );

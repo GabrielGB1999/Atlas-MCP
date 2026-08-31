@@ -2,7 +2,7 @@ import { z } from "zod";
 import { ApiClient } from "../http/apiClient";
 import { AssetShowDTO, PageResponse, SearchCriteria } from "../atlasTypes";
 import { errorResult, jsonResult } from "../util/mcpResult";
-import { formatMiniRef } from "../util/format";
+import { displayId, formatMiniRef } from "../util/format";
 
 export const listAssetsShape = {
   nameContains: z.string().optional().describe("Case-insensitive substring match on asset name"),
@@ -57,11 +57,11 @@ export async function listAssets(apiClient: ApiClient, args: ListAssetsArgs) {
     const page = await apiClient.post<PageResponse<AssetShowDTO>>("/assets/search", criteria);
 
     const items = page.content.map((asset) => ({
-      id: asset.id,
+      id: displayId(asset.customId, asset.id),
+      assetId: asset.id,
       name: asset.name,
       status: asset.status,
       archived: asset.archived,
-      customId: asset.customId ?? null,
       location: formatMiniRef(asset.location),
       category: formatMiniRef(asset.category),
       model: asset.model ?? null,

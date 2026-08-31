@@ -64,15 +64,17 @@ maybeDescribe("Atlas API integration", () => {
     });
     expect(result.isError).toBeFalsy();
     const parsed = JSON.parse(result.content[0].text);
-    expect(typeof parsed.id).toBe("number");
-    createdWorkOrderId = parsed.id;
+    expect(typeof parsed.workOrderId).toBe("number");
+    expect(typeof parsed.id).toBe("string"); // display id, e.g. "WO000042"
+    createdWorkOrderId = parsed.workOrderId;
   });
 
   it("gets the created work order, including discrepancies as an empty array", async () => {
     const result = await getWorkOrder(apiClient, { workOrderId: createdWorkOrderId });
     expect(result.isError).toBeFalsy();
     const parsed = JSON.parse(result.content[0].text);
-    expect(parsed.id).toBe(createdWorkOrderId);
+    expect(parsed.workOrderId).toBe(createdWorkOrderId);
+    expect(typeof parsed.id).toBe("string");
     expect(parsed.status).toBe("OPEN");
     // A brand-new work order has no discrepancies yet.
     expect(Array.isArray(parsed.discrepancies)).toBe(true);
@@ -123,10 +125,10 @@ maybeDescribe("Atlas API integration", () => {
     if (assets.length === 0) {
       return; // No assets seeded in this environment — nothing to fetch.
     }
-    const result = await getAsset(apiClient, { assetId: assets[0].id });
+    const result = await getAsset(apiClient, { assetId: assets[0].assetId });
     expect(result.isError).toBeFalsy();
     const parsed = JSON.parse(result.content[0].text);
-    expect(parsed.id).toBe(assets[0].id);
+    expect(parsed.assetId).toBe(assets[0].assetId);
     expect(typeof parsed.name).toBe("string");
   });
 
