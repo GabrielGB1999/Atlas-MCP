@@ -15,6 +15,10 @@ export interface Config {
   mcpPort: number;
   logLevel: LogLevel;
   jwtExpiryBufferMinutes: number;
+  /** Shared secret required on the `/mcp` endpoint as `Authorization: Bearer <token>`.
+   * Unset means the endpoint is open to anyone who can reach the port — fine for local
+   * dev, never for a publicly reachable deployment. */
+  mcpAuthToken: string | null;
 }
 
 export function loadConfig(): Config {
@@ -31,5 +35,6 @@ export function loadConfig(): Config {
     mcpPort: Number(process.env.MCP_PORT ?? 3000),
     logLevel,
     jwtExpiryBufferMinutes: Number(process.env.JWT_EXPIRY_BUFFER_MINUTES ?? 5),
+    mcpAuthToken: process.env.MCP_AUTH_TOKEN?.trim() || null,
   };
 }

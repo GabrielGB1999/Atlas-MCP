@@ -79,9 +79,27 @@ npm run dev
 | `MCP_PORT` | `3000` | Port for the MCP HTTP transport + `/health` |
 | `LOG_LEVEL` | `INFO` | `DEBUG \| INFO \| WARN \| ERROR` |
 | `JWT_EXPIRY_BUFFER_MINUTES` | `5` | Refresh the JWT this many minutes before it expires |
+| `MCP_AUTH_TOKEN` | *(unset)* | Bearer token required on `/mcp`. Unset = open endpoint (local dev only) |
 
 The service account must already exist (`POST /auth/signup` against the Atlas API) before this
 server starts — it only signs in, it doesn't create the account.
+
+## Exposing this on a public network
+
+Local Claude clients (Desktop, Claude Code) can reach `localhost` directly. The Claude mobile apps
+and claude.ai's custom connectors cannot — they need a public HTTPS URL. Before you put this
+server anywhere reachable from the internet:
+
+1. **Set `MCP_AUTH_TOKEN`** to a long random value (`openssl rand -hex 32`). Without it, `/mcp` has
+   no access control at all and anyone with the URL can act as your Atlas service account. The
+   server logs a `WARN` at startup if this is unset, precisely so it's not silently forgotten.
+2. **Put it behind HTTPS** — a reverse proxy (Caddy, nginx + Let's Encrypt) or a platform that
+   terminates TLS for you (Fly.io, Render, etc.).
+3. When adding it as a custom connector in claude.ai, supply the same token as the connector's
+   bearer/auth header.
+
+`GET /health` intentionally stays open with no token required, so container orchestrators and load
+balancers can probe it without the secret.
 
 ## Running with Docker
 
@@ -89,9 +107,10 @@ server starts — it only signs in, it doesn't create the account.
 docker compose up -d --build
 ```
 
-`docker-compose.yml` reads `API_BASE_URL`, `API_EMAIL`, `API_PASSWORD`, `LOG_LEVEL`, and
-`JWT_EXPIRY_BUFFER_MINUTES` from your shell/`.env`. The container exposes `GET /health` →
-`{ "status": "ok" }`, used by both the Dockerfile's `HEALTHCHECK` and the compose file.
+`docker-compose.yml` reads `API_BASE_URL`, `API_EMAIL`, `API_PASSWORD`, `LOG_LEVEL`,
+`JWT_EXPIRY_BUFFER_MINUTES`, and `MCP_AUTH_TOKEN` from your shell/`.env`. The container exposes
+`GET /health` → `{ "status": "ok" }`, used by both the Dockerfile's `HEALTHCHECK` and the compose
+file.
 
 ## Example tool calls
 
@@ -176,3 +195,7 @@ Then set `API_EMAIL=mcp@atlas.local`, `API_PASSWORD=Password123!` before running
 - **`generate-weekly-work-order-report` looks incomplete for a busy week** — it pages through
   results up to 25 pages of 200 (5,000 work orders); past that it logs a `WARN` and returns what it
   has rather than hanging indefinitely.
+- **`/mcp` requests return 401 "missing or invalid bearer token"** — `MCP_AUTH_TOKEN` is set on the
+  server; the client must send the exact same value as `Authorization: Bearer <token>`.
+- **Server logs `WARN: MCP_AUTH_TOKEN is not set...` at startup** — expected in local dev; set the
+  variable before exposing the port on any network you don't fully trust.

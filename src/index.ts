@@ -13,7 +13,7 @@ function main() {
   const authManager = new AuthManager(config, logger, signinHttp);
   const apiClient = new ApiClient(config, logger, authManager);
 
-  const app = buildApp(apiClient, logger);
+  const app = buildApp(config, apiClient, logger);
   app.listen(config.mcpPort, () => {
     logger.info("Atlas MCP server listening", { port: config.mcpPort, apiBaseUrl: config.apiBaseUrl });
   });
