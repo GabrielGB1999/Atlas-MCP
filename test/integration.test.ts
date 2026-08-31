@@ -8,6 +8,8 @@ import { createWorkOrder } from "../src/tools/createWorkOrder";
 import { getWorkOrder } from "../src/tools/getWorkOrder";
 import { updateWorkOrder } from "../src/tools/updateWorkOrder";
 import { changeWorkOrderStatus } from "../src/tools/changeWorkOrderStatus";
+import { listAssets } from "../src/tools/listAssets";
+import { getAsset } from "../src/tools/getAsset";
 
 /**
  * Exercises the tools against a real running Atlas API. Requires
@@ -66,12 +68,15 @@ maybeDescribe("Atlas API integration", () => {
     createdWorkOrderId = parsed.id;
   });
 
-  it("gets the created work order", async () => {
+  it("gets the created work order, including discrepancies as an empty array", async () => {
     const result = await getWorkOrder(apiClient, { workOrderId: createdWorkOrderId });
     expect(result.isError).toBeFalsy();
     const parsed = JSON.parse(result.content[0].text);
     expect(parsed.id).toBe(createdWorkOrderId);
     expect(parsed.status).toBe("OPEN");
+    // A brand-new work order has no discrepancies yet.
+    expect(Array.isArray(parsed.discrepancies)).toBe(true);
+    expect(parsed.discrepancies).toHaveLength(0);
   });
 
   it("updates the work order", async () => {
@@ -92,6 +97,37 @@ maybeDescribe("Atlas API integration", () => {
     expect(result.isError).toBeFalsy();
     const parsed = JSON.parse(result.content[0].text);
     expect(parsed.status).toBe("IN_PROGRESS");
+  });
+
+  it("lists assets", async () => {
+    const result = await listAssets(apiClient, {
+      pageNum: 0,
+      pageSize: 5,
+      sortField: "id",
+      direction: "ASC",
+    });
+    expect(result.isError).toBeFalsy();
+    const parsed = JSON.parse(result.content[0].text);
+    expect(parsed.pagination).toBeDefined();
+    expect(Array.isArray(parsed.assets)).toBe(true);
+  });
+
+  it("gets an asset by id when one exists", async () => {
+    const list = await listAssets(apiClient, {
+      pageNum: 0,
+      pageSize: 1,
+      sortField: "id",
+      direction: "ASC",
+    });
+    const { assets } = JSON.parse(list.content[0].text);
+    if (assets.length === 0) {
+      return; // No assets seeded in this environment — nothing to fetch.
+    }
+    const result = await getAsset(apiClient, { assetId: assets[0].id });
+    expect(result.isError).toBeFalsy();
+    const parsed = JSON.parse(result.content[0].text);
+    expect(parsed.id).toBe(assets[0].id);
+    expect(typeof parsed.name).toBe("string");
   });
 
   afterAll(async () => {

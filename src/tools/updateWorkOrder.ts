@@ -2,6 +2,7 @@ import { z } from "zod";
 import { ApiClient } from "../http/apiClient";
 import { WorkOrderPatchBody, WorkOrderShowDTO } from "../atlasTypes";
 import { errorResult, jsonResult } from "../util/mcpResult";
+import { formatMiniRef, formatUserRef, formatUserRefs } from "../util/format";
 import { PRIORITY_VALUES } from "./enums";
 
 const isoDate = z.string().datetime({ offset: true });
@@ -87,12 +88,12 @@ export async function updateWorkOrder(apiClient: ApiClient, args: UpdateWorkOrde
         priority: updated.priority,
         dueDate: updated.dueDate ?? null,
         estimatedDuration: updated.estimatedDuration,
-        location: updated.location ?? null,
-        team: updated.team ?? null,
-        category: updated.category ?? null,
-        asset: updated.asset ?? null,
-        primaryUser: updated.primaryUser ?? null,
-        assignedTo: updated.assignedTo,
+        location: formatMiniRef(updated.location),
+        team: formatMiniRef(updated.team),
+        category: formatMiniRef(updated.category),
+        asset: formatMiniRef(updated.asset),
+        primaryUser: formatUserRef(updated.primaryUser),
+        assignedTo: formatUserRefs(updated.assignedTo),
         archived: updated.archived,
       },
     });

@@ -9,6 +9,8 @@ import { updateWorkOrder, updateWorkOrderShape } from "./tools/updateWorkOrder";
 import { changeWorkOrderStatus, changeWorkOrderStatusShape } from "./tools/changeWorkOrderStatus";
 import { assignWorkOrder, assignWorkOrderShape } from "./tools/assignWorkOrder";
 import { generateWeeklyWorkOrderReport, weeklyReportShape } from "./tools/weeklyReport";
+import { getAsset, getAssetShape } from "./tools/getAsset";
+import { listAssets, listAssetsShape } from "./tools/listAssets";
 
 export function createServer(apiClient: ApiClient, logger: Logger): McpServer {
   const server = new McpServer({ name: "atlas-mcp", version: "0.1.0" });
@@ -61,6 +63,22 @@ export function createServer(apiClient: ApiClient, logger: Logger): McpServer {
     "Generate an executive summary of work orders due within a given week (by dueDate).",
     weeklyReportShape,
     async (args) => generateWeeklyWorkOrderReport(apiClient, logger, args),
+  );
+
+  server.tool(
+    "get-asset",
+    "Retrieve full details of a single asset by ID, for consultation (read-only) — " +
+      "name, status, location, hierarchy, assigned users/teams, warranty, parts, etc.",
+    getAssetShape,
+    async (args) => getAsset(apiClient, args),
+  );
+
+  server.tool(
+    "list-assets",
+    "List assets with optional filtering by name, location, category, or archived state, plus pagination. " +
+      "Read-only, for consultation.",
+    listAssetsShape,
+    async (args) => listAssets(apiClient, args),
   );
 
   return server;

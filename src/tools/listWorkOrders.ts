@@ -2,6 +2,7 @@ import { z } from "zod";
 import { ApiClient } from "../http/apiClient";
 import { PageResponse, SearchCriteria, WorkOrderShowDTO } from "../atlasTypes";
 import { errorResult, jsonResult } from "../util/mcpResult";
+import { formatMiniRef, formatUserRefs } from "../util/format";
 import { STATUS_VALUES, PRIORITY_VALUES } from "./enums";
 
 export const listWorkOrdersShape = {
@@ -83,7 +84,9 @@ export async function listWorkOrders(apiClient: ApiClient, args: ListWorkOrdersA
       description: wo.description ?? null,
       status: wo.status,
       priority: wo.priority,
-      assignedTo: wo.assignedTo.map((u) => ({ id: u.id, name: u.name ?? null })),
+      assignedTo: formatUserRefs(wo.assignedTo),
+      location: formatMiniRef(wo.location),
+      asset: formatMiniRef(wo.asset),
       dueDate: wo.dueDate ?? null,
       estimatedDuration: wo.estimatedDuration,
     }));

@@ -17,6 +17,23 @@ memory, and refreshes it automatically (both preemptively before expiry and reac
 | `change-work-order-status` | `PATCH /work-orders/{id}/change-status` | Move through OPEN/IN_PROGRESS/ON_HOLD/COMPLETE, with feedback/signature |
 | `assign-work-order` | (wraps `update-work-order`) | Set assignees / primary assignee |
 | `generate-weekly-work-order-report` | `POST /work-orders/search` (paged) | Executive summary for a given week, by `dueDate` |
+| `get-asset` | `GET /assets/{id}` | Full detail on one asset, read-only |
+| `list-assets` | `POST /assets/search` | Filter + paginate assets, read-only |
+
+### Human-readable names, not raw IDs
+
+Every tool renders people and entities as `{ id, name }` pairs instead of bare ids —
+`get-work-order`'s `relations.primaryUser` reads `{ "id": 7, "name": "John Smith" }`, not `"worker:
+ID 225"`. Two wrinkles worth knowing:
+
+- **Users have no combined "name" field on the API side** (`UserMiniDTO` only has
+  `firstName`/`lastName`) — `src/util/format.ts`'s `formatUserName()` joins them. A user with
+  neither field set (rare) falls back to `User #<id>`.
+- **`get-work-order` also fetches and resolves discrepancies** ("squawks") via
+  `GET /work-order-discrepancies/work-order/{id}`, included as a `discrepancies` array. Each
+  discrepancy's "raised by" is only exposed as a raw `createdBy` user id by that endpoint — this
+  tool makes one extra `GET /users/{id}` call per unique id to resolve it to a name
+  (`src/util/userLookup.ts`), rather than showing a bare id.
 
 ### A few things that don't match the "obvious" naming
 
@@ -46,6 +63,11 @@ its filter semantics are stricter than they look:
   join) with `joinType: "LEFT"`.
 - Filtering a **to-one relation** (`team`, `location`) uses `operation: "in"` on the bare field name
   with entity ids in `values`.
+- **`list-assets` deliberately has no status filter.** The server's enum-name conversion
+  (`EnumName.java`) only knows `PRIORITY`/`STATUS`/`JS_DATE` — there's no `ASSET_STATUS` entry, and
+  the API's own frontend doesn't filter assets by status via search either. Filtering by status
+  would silently match nothing rather than erroring, so it's left out; use `get-asset` on
+  individual results instead.
 - Filtering a **date range** requires `operation: "ge"`/`"le"` with `enumName: "JS_DATE"`, and the
   value must be in the *exact* format `yyyy-MM-dd'T'HH:mm:ss.SSS'Z'` — i.e. JavaScript's
   `Date#toISOString()`. Any other format fails to parse server-side and is silently dropped (no
@@ -142,6 +164,12 @@ file.
 
 // generate-weekly-work-order-report
 { "weekOffset": 0, "format": "MARKDOWN" }
+
+// get-asset
+{ "assetId": 12 }
+
+// list-assets
+{ "locationId": 3, "nameContains": "conveyor", "pageSize": 10 }
 ```
 
 ## Testing

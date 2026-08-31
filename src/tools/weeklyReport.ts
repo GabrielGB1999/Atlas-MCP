@@ -3,6 +3,7 @@ import { ApiClient } from "../http/apiClient";
 import { PageResponse, SearchCriteria, WorkOrderShowDTO, toApiDateString } from "../atlasTypes";
 import { Logger } from "../util/logger";
 import { errorResult, formatDate, jsonResult, textResult } from "../util/mcpResult";
+import { formatUserName } from "../util/format";
 import { PRIORITY_VALUES, STATUS_VALUES } from "./enums";
 
 export const weeklyReportShape = {
@@ -138,7 +139,7 @@ function buildReportData(agg: Aggregation, start: Date, end: Date, includeComple
   const assigneeBreakdown = new Map<string, number>();
   for (const wo of agg.byStatus.IN_PROGRESS) {
     for (const user of wo.assignedTo) {
-      const name = user.name ?? `User #${user.id}`;
+      const name = formatUserName(user) ?? `User #${user.id}`;
       assigneeBreakdown.set(name, (assigneeBreakdown.get(name) ?? 0) + 1);
     }
   }
@@ -188,7 +189,7 @@ function buildReportData(agg: Aggregation, start: Date, end: Date, includeComple
                 id: wo.id,
                 title: wo.title,
                 completedOn: wo.completedOn ?? null,
-                completedBy: wo.completedBy?.name ?? null,
+                completedBy: formatUserName(wo.completedBy),
               })),
             }
           : {}),

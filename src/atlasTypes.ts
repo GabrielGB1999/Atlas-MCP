@@ -63,9 +63,89 @@ export interface PageResponse<T> {
   size: number;
 }
 
-interface MiniDTO {
+/** Entity-reference minis (location/team/category/asset/file/customer/vendor/part all follow
+ * this exact shape — id + name — verified against LocationMiniDTO, TeamMiniDTO, CategoryMiniDTO,
+ * AssetMiniDTO, FileMiniDTO). */
+export interface MiniDTO {
   id: number;
   name?: string;
+}
+
+/** dto/UserMiniDTO.java — NOT a MiniDTO: no combined "name" field, only firstName/lastName.
+ * Use formatUserName() (src/util/format.ts) to render one for display. */
+export interface UserMiniDTO {
+  id: number;
+  firstName?: string | null;
+  lastName?: string | null;
+  phone?: string | null;
+}
+
+/** dto/workOrder/WorkOrderMiniDTO.java */
+export interface WorkOrderMiniDTO {
+  id: number;
+  title: string;
+  dueDate?: string | null;
+  customId?: string | null;
+  status: WorkOrderStatus;
+  createdAt?: string | null;
+}
+
+/** model/enums/DiscrepancyStatus.java */
+export type DiscrepancyStatus = "OPEN" | "CORRECTED" | "DEFERRED";
+
+/** dto/WorkOrderDiscrepancyShowDTO.java + dto/AuditShowDTO.java.
+ * Note: the originating work order is WRITE_ONLY on the entity and not exposed here — this DTO
+ * is only ever fetched already scoped to one work order, via GET /work-order-discrepancies/work-order/{id}. */
+export interface WorkOrderDiscrepancyShowDTO {
+  id: number;
+  createdBy?: number | null;
+  updatedBy?: number | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  description: string;
+  correctiveMeasure?: string | null;
+  status: DiscrepancyStatus;
+  derivedWorkOrder?: WorkOrderMiniDTO | null;
+}
+
+/** dto/AssetShowDTO.java + dto/AuditShowDTO.java. `deprecation`/vendor/customer/part minis are
+ * typed loosely (id + optional name) — their exact field lists weren't verified field-by-field
+ * the way User/Location/Team/Category/Asset minis were. */
+export interface AssetShowDTO {
+  id: number;
+  createdBy?: number | null;
+  updatedBy?: number | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  archived: boolean;
+  hasChildren: boolean;
+  description?: string | null;
+  image?: { id: number; url?: string } | null;
+  location?: MiniDTO | null;
+  parentAsset?: MiniDTO | null;
+  area?: string | null;
+  barCode?: string | null;
+  nfcId?: string | null;
+  category?: MiniDTO | null;
+  name: string;
+  primaryUser?: UserMiniDTO | null;
+  assignedTo: UserMiniDTO[];
+  teams: MiniDTO[];
+  vendors: MiniDTO[];
+  customers: MiniDTO[];
+  deprecation?: unknown | null;
+  warrantyExpirationDate?: string | null;
+  inServiceDate?: string | null;
+  additionalInfos?: string | null;
+  serialNumber?: string | null;
+  model?: string | null;
+  status: AssetStatus;
+  acquisitionCost?: number | null;
+  files: MiniDTO[];
+  parts: MiniDTO[];
+  power?: string | null;
+  manufacturer?: string | null;
+  customId?: string | null;
 }
 
 /** dto/WorkOrderBaseShowDTO.java + dto/workOrder/WorkOrderShowDTO.java */
@@ -81,13 +161,13 @@ export interface WorkOrderShowDTO {
   category?: MiniDTO | null;
   location?: MiniDTO | null;
   team?: MiniDTO | null;
-  primaryUser?: MiniDTO | null;
-  assignedTo: MiniDTO[];
+  primaryUser?: UserMiniDTO | null;
+  assignedTo: UserMiniDTO[];
   customers: MiniDTO[];
   asset?: MiniDTO | null;
   files: MiniDTO[];
   image?: MiniDTO | null;
-  completedBy?: MiniDTO | null;
+  completedBy?: UserMiniDTO | null;
   completedOn?: string | null;
   archived: boolean;
   parentRequest?: MiniDTO | null;
@@ -149,6 +229,13 @@ export interface WorkOrderChangeStatusBody {
   status: WorkOrderStatus;
   signature?: string;
   feedback?: string;
+}
+
+/** dto/UserResponseDTO.java — only the fields this MCP actually uses (id/name), from GET /users/{id}. */
+export interface UserResponseDTO {
+  id: number;
+  firstName?: string | null;
+  lastName?: string | null;
 }
 
 export interface SigninRequest {
